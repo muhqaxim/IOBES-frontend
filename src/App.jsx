@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import PropTypes from "prop-types"; // Import PropTypes for prop validation
 import "@fontsource/inter";
 import "@fontsource/roboto-mono";
@@ -12,7 +17,11 @@ import Register from "./components/Register";
 import Dashboard from "./components/Dashboard/Dashboard";
 import AboutPage from "./components/About/AboutPage";
 import ScrollToTop from "./components/ScrollToTop";
-
+import AdminLogin from "./components/AdminLogin";
+import AdminRegister from "./components/AdminRegister";
+import AdminDashboard from "./components/AdminDashboard/AdminDashboard";
+import FacultyManagement from "./components/AdminDashboard/FacultyManagement";
+import CourseManagement from "./components/AdminDashboard/CourseManagement";
 const App = () => {
   return (
     <Router>
@@ -33,6 +42,17 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard/*" element={<Dashboard />} />
+          <Route path="/admin-register" element={<AdminRegister />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route
+            path="/admin-dashboard/faculty-management"
+            element={<FacultyManagement />}
+          />
+          <Route
+            path="/admin-dashboard/course-management"
+            element={<CourseManagement />}
+          />
         </Routes>
       </ConditionalLayout>
     </Router>
@@ -47,13 +67,17 @@ const ConditionalLayout = ({ children }) => {
   const showNavbarFooterPaths = ["/", "/about", "/"];
 
   // Conditionally show Navbar and Footer
-  const shouldShowNavbarFooter = showNavbarFooterPaths.includes(location.pathname);
+  const shouldShowNavbarFooter = showNavbarFooterPaths.includes(
+    location.pathname
+  );
 
   return (
     <>
-      {shouldShowNavbarFooter && <Navbar />} {/* Render Navbar only on specific paths */}
+      {shouldShowNavbarFooter && <Navbar />}{" "}
+      {/* Render Navbar only on specific paths */}
       {children}
-      {shouldShowNavbarFooter && <Footer />} {/* Render Footer only on specific paths */}
+      {shouldShowNavbarFooter && <Footer />}{" "}
+      {/* Render Footer only on specific paths */}
     </>
   );
 };

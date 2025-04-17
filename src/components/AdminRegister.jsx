@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaArrowLeft, FaEye, FaEyeSlash } from "react-icons/fa";
 
-const Register = () => {
+const AdminRegister = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -112,9 +112,17 @@ const Register = () => {
             Already have an account?{" "}
             <Link
               to="/login"
-              className="text-[#003C60] font-semibold hover:underline"
+              className="text-[] font-semibold hover:underline"
             >
               Login
+            </Link>
+          </p>
+          <p className="text-center mt-4 w-full">
+            <Link
+              to="/register"
+              className="text-[#003C60] font-semibold hover:underline"
+            >
+              Register as Faculty
             </Link>
           </p>
         </div>
@@ -123,4 +131,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default AdminRegister;

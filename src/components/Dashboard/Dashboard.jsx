@@ -35,7 +35,7 @@ const Dashboard = () => {
           />
           {/* exam */}
           <Route path="exam-management" element={<ExamManagement />} />
-          <Route path="/exam-questions/:id" element={<CreateExam />} />
+          <Route path="exam-questions/:id" element={<CreateExam />} />
           {/* assignment */}
           <Route
             path="assignment-management"

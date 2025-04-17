@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaEye, FaEyeSlash } from "react-icons/fa";
 
-const Login = () => {
+const AdminLogin = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const handleLogin = (e) => {
     e.preventDefault();
-    navigate("/dashboard");
+    navigate("/admin-dashboard");
   };
 
   return (
@@ -102,10 +102,10 @@ const Login = () => {
           </p>
           <p className="text-center mt-4 w-full">
             <Link
-              to="/admin-login"
+              to="/login"
               className="text-[#003C60] font-semibold hover:underline"
             >
-              Login as admin
+              Login as Faculty
             </Link>
           </p>
         </div>
@@ -114,4 +114,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default AdminLogin;
