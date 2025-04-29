@@ -25,7 +25,12 @@ import axios from "axios";
 const CourseManagement = () => {
   const [courses, setCourses] = useState([]);
   const [faculty, setFaculty] = useState([]);
-  const [departments, setDepartments] = useState(["IT", "CS", "SE"]);
+  const [departments, setDepartments] = useState([
+    { id: 1, name: "Computer Science" },
+    { id: 2, name: "Software Engineering" },
+    { id: 3, name: "Data Science" },
+    { id: 4, name: "Artificial Intelligence" },
+  ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,7 +46,6 @@ const CourseManagement = () => {
     notifications: 2,
   });
 
-  // Fetch courses and faculty data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -275,8 +279,8 @@ const CourseManagement = () => {
               >
                 <option value="All">All Departments</option>
                 {departments.map((department, index) => (
-                  <option key={index} value={department}>
-                    {department}
+                  <option key={index} value={department.id}>
+                    {department.name}
                   </option>
                 ))}
               </select>
@@ -511,6 +515,7 @@ const CourseManagement = () => {
       {/* Modals */}
       {showAddModal && (
         <AddCourseModal
+          faculty={faculty}
           departments={departments}
           onClose={() => setShowAddModal(false)}
           onSubmit={handleAddCourse}

@@ -160,10 +160,10 @@ const AddCourseModal = ({ departments, faculty, onClose, onSubmit }) => {
                 name="departmentId"
                 value={formData.departmentId}
                 onChange={handleChange}
-                className={`w-full p-2 border rounded-lg ${errors.departmentId ? 'border-red-500' : 'border-gray-300'}`}
+                className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Select Department</option>
-                {departments.map((department) => (
+                {departments && departments.map((department) => (
                   <option key={department.id} value={department.id}>
                     {department.name}
                   </option>
