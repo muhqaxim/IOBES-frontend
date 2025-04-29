@@ -286,14 +286,11 @@ const FacultyManagement = () => {
     }
 
     try {
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/faculty/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-          },
-        }
-      );
+      await axios.delete(`${import.meta.env.VITE_API_URL}/faculty/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+      });
 
       // Remove the faculty from the local state
       setFacultyData(facultyData.filter((faculty) => faculty.id !== id));
@@ -303,14 +300,6 @@ const FacultyManagement = () => {
       toast.error("Failed to delete faculty");
     }
   };
-
-  if (loading && facultyData.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <AdminLayout>
@@ -415,162 +404,168 @@ const FacultyManagement = () => {
         )}
 
         {/* Faculty Table */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-blue-100">
-              <thead className="bg-blue-100">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Email
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Department
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Courses
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Last Active
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-blue-100">
-                {loading && facultyData.length === 0 ? (
+        {loading && facultyData.length === 0 ? (
+          <div className="flex items-center justify-center h-[500px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1F2937]"></div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow mb-8">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-blue-100">
+                <thead className="bg-blue-100">
                   <tr>
-                    <td colSpan="7" className="px-6 py-4 text-center">
-                      <FaSpinner className="animate-spin h-6 w-6 mx-auto text-primary" />
-                    </td>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Name
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Email
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Department
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Courses
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Last Active
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-right text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Actions
+                    </th>
                   </tr>
-                ) : (
-                  filteredFaculty.map((faculty) => (
-                    <tr key={faculty.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <FaUserCircle className="h-6 w-6 text-primary" />
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-darktext">
-                              {faculty.name}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {faculty.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {faculty.department}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {faculty.courses}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            faculty.status === "Active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {faculty.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {faculty.lastActive}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleOpenEditModal(faculty)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Edit"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleStatusToggle(faculty.id, faculty.status)
-                            }
-                            className={`${
-                              faculty.status === "Active"
-                                ? "text-red-600 hover:text-red-900"
-                                : "text-green-600 hover:text-green-900"
-                            }`}
-                            title={
-                              faculty.status === "Active"
-                                ? "Deactivate"
-                                : "Activate"
-                            }
-                          >
-                            {faculty.status === "Active" ? (
-                              <FaBan />
-                            ) : (
-                              <FaCheck />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleOpenActivityModal(faculty)}
-                            className="text-gray-600 hover:text-gray-900"
-                            title="View Activity"
-                          >
-                            <FaHistory />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteFaculty(faculty.id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-blue-100">
+                  {loading && facultyData.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-4 text-center">
+                        <FaSpinner className="animate-spin h-6 w-6 mx-auto text-primary" />
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {!loading && filteredFaculty.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">
-                No faculty members found matching your filters.
-              </p>
+                  ) : (
+                    filteredFaculty.map((faculty) => (
+                      <tr key={faculty.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <FaUserCircle className="h-6 w-6 text-primary" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-darktext">
+                                {faculty.name}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {faculty.email}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {faculty.department}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {faculty.courses}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              faculty.status === "Active"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {faculty.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {faculty.lastActive}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={() => handleOpenEditModal(faculty)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Edit"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusToggle(faculty.id, faculty.status)
+                              }
+                              className={`${
+                                faculty.status === "Active"
+                                  ? "text-red-600 hover:text-red-900"
+                                  : "text-green-600 hover:text-green-900"
+                              }`}
+                              title={
+                                faculty.status === "Active"
+                                  ? "Deactivate"
+                                  : "Activate"
+                              }
+                            >
+                              {faculty.status === "Active" ? (
+                                <FaBan />
+                              ) : (
+                                <FaCheck />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleOpenActivityModal(faculty)}
+                              className="text-gray-600 hover:text-gray-900"
+                              title="View Activity"
+                            >
+                              <FaHistory />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteFaculty(faculty.id)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+            {!loading && filteredFaculty.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  No faculty members found matching your filters.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Add Faculty Modal */}

@@ -1,10 +1,7 @@
-// AddCourseModal.jsx
 import React, { useState } from 'react';
 import { FaTimes, FaPlus, FaTrash } from 'react-icons/fa';
 
 const AddCourseModal = ({ departments, faculty, onClose, onSubmit }) => {
-  // Check if departments array exists and has items
-  const defaultDepartment = departments && departments.length > 0 ? departments[0] : '';
   
   const [formData, setFormData] = useState({
     name: '',

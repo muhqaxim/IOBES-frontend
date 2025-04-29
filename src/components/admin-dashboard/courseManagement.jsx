@@ -41,6 +41,35 @@ const CourseManagement = () => {
     notifications: 2,
   });
 
+  // Fetch courses and faculty data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch courses
+        const coursesResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/courses`
+        );
+
+        // Fetch faculty
+        const facultyResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/faculty`
+        );
+
+        setCourses(coursesResponse.data);
+        setFaculty(facultyResponse.data);
+      } catch (err) {
+        setError(err.message || "An error occurred while fetching data");
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       (course.name &&
@@ -57,6 +86,113 @@ const CourseManagement = () => {
 
     return matchesSearch && matchesDepartment && matchesStatus;
   });
+
+  // Handle adding a new course
+  const handleAddCourse = async (courseData) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/courses`,
+        courseData
+      );
+      setCourses([...courses, response.data.course]);
+      setShowAddModal(false);
+    } catch (error) {
+      console.error("Error adding course:", error);
+      alert(
+        "Failed to add course: " +
+          (error.response?.data?.message || error.message)
+      );
+    }
+  };
+
+  // Handle updating a course
+  const handleUpdateCourse = async (courseData) => {
+    try {
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_URL}/courses/${selectedCourse.id}`,
+        courseData
+      );
+
+      // Update courses list with updated course
+      setCourses(
+        courses.map((course) =>
+          course.id === selectedCourse.id ? response.data.course : course
+        )
+      );
+
+      setShowEditModal(false);
+    } catch (error) {
+      console.error("Error updating course:", error);
+      alert(
+        "Failed to update course: " +
+          (error.response?.data?.message || error.message)
+      );
+    }
+  };
+
+  // Handle deleting a course
+  const handleDeleteCourse = async (courseId) => {
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/courses/${courseId}`);
+
+      // Remove deleted course from state
+      setCourses(courses.filter((course) => course.id !== courseId));
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      alert(
+        "Failed to delete course: " +
+          (error.response?.data?.message || error.message)
+      );
+    }
+  };
+
+  // Handle assigning faculty to a course
+  const handleAssignFaculty = async (courseId, facultyIds) => {
+    try {
+      // Remove all current faculty assignments
+      const currentAssignments = selectedCourse.facultyAssignments || [];
+
+      for (const assignment of currentAssignments) {
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/courses/remove-faculty`,
+          {
+            courseId: courseId,
+            facultyId: assignment.faculty.id,
+          }
+        );
+      }
+
+      // Add new faculty assignments
+      for (const facultyId of facultyIds) {
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/courses/assign-faculty`,
+          {
+            courseId: courseId,
+            facultyId: facultyId,
+          }
+        );
+      }
+
+      // Refresh course data
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/courses/${courseId}`
+      );
+
+      setCourses(
+        courses.map((course) =>
+          course.id === courseId ? response.data : course
+        )
+      );
+
+      setShowAssignFacultyModal(false);
+    } catch (error) {
+      console.error("Error assigning faculty:", error);
+      alert(
+        "Failed to assign faculty: " +
+          (error.response?.data?.message || error.message)
+      );
+    }
+  };
 
   const handleOpenAddModal = () => {
     setShowAddModal(true);
@@ -76,14 +212,6 @@ const CourseManagement = () => {
     setSelectedCourse(course);
     setShowDetailsModal(true);
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <AdminLayout>
@@ -141,7 +269,7 @@ const CourseManagement = () => {
             </div>
             <div className="flex flex-wrap gap-3">
               <select
-                className="border border-gray-300 bg-primary rounded-lg px-3 py-2 text-sm"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
               >
@@ -154,7 +282,7 @@ const CourseManagement = () => {
               </select>
 
               <select
-                className="border border-gray-300 bg-primary rounded-lg px-3 py-2 text-sm"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
@@ -176,193 +304,208 @@ const CourseManagement = () => {
             </div>
           </div>
         </div>
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{error}</p>
+          </div>
+        )}
 
         {/* Course Table */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-blue-100">
-              <thead className="bg-blue-100">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Course
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Department
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Description
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Created
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Faculty
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    CLOs
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Content
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-darktext uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-blue-100">
-                {filteredCourses.map((course) => (
-                  <tr key={course.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <FaBook className="h-5 w-5 text-primary" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-darktext">
-                            {course.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {course.code}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {course.department?.name || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {course.description || "No description available"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(course.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {course.facultyAssignments &&
-                      course.facultyAssignments.length > 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-[500px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#141E30]"></div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow mb-8">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-blue-100">
+                <thead className="bg-blue-100">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Course
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Department
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Description
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Created
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Faculty
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      CLOs
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Content
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-right text-xs font-medium text-darktext uppercase tracking-wider"
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-blue-100">
+                  {filteredCourses.map((course) => (
+                    <tr key={course.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span>{course.facultyAssignments.length}</span>
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <FaBook className="h-5 w-5 text-primary" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-darktext">
+                              {course.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {course.code}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {course.department?.name || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                        {course.description || "No description available"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {course.createdAt &&
+                          new Date(course.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {course.facultyAssignments &&
+                        course.facultyAssignments.length > 0 ? (
+                          <div className="flex items-center">
+                            <span>{course.facultyAssignments.length}</span>
+                            <button
+                              onClick={() =>
+                                handleOpenAssignFacultyModal(course)
+                              }
+                              className="ml-2 text-blue-600 hover:text-blue-800"
+                            >
+                              <FaEdit className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             onClick={() => handleOpenAssignFacultyModal(course)}
-                            className="ml-2 text-blue-600 hover:text-blue-800"
+                            className="text-blue-600 hover:text-blue-800 flex items-center"
                           >
-                            <FaEdit className="h-3 w-3" />
+                            <FaPlus className="h-3 w-3 mr-1" />
+                            <span>Assign</span>
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {course.clos ? course.clos.length : 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {course.contents ? (
+                          <div className="flex space-x-2">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                              {
+                                course.contents.filter((c) => c.type === "QUIZ")
+                                  .length
+                              }{" "}
+                              Quizzes
+                            </span>
+                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                              {
+                                course.contents.filter(
+                                  (c) => c.type === "ASSIGNMENT"
+                                ).length
+                              }{" "}
+                              Assignments
+                            </span>
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
+                              {
+                                course.contents.filter((c) => c.type === "EXAM")
+                                  .length
+                              }{" "}
+                              Exams
+                            </span>
+                          </div>
+                        ) : (
+                          <span>No content</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleOpenDetailsModal(course)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="View Details"
+                          >
+                            <FaSearch />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditModal(course)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Edit"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  "Are you sure you want to delete this course?"
+                                )
+                              ) {
+                                handleDeleteCourse(course.id);
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <FaTrash />
                           </button>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenAssignFacultyModal(course)}
-                          className="text-blue-600 hover:text-blue-800 flex items-center"
-                        >
-                          <FaPlus className="h-3 w-3 mr-1" />
-                          <span>Assign</span>
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {course.clos ? course.clos.length : 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {course.contents ? (
-                        <div className="flex space-x-2">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                            {
-                              course.contents.filter((c) => c.type === "QUIZ")
-                                .length
-                            }{" "}
-                            Quizzes
-                          </span>
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                            {
-                              course.contents.filter(
-                                (c) => c.type === "ASSIGNMENT"
-                              ).length
-                            }{" "}
-                            Assignments
-                          </span>
-                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
-                            {
-                              course.contents.filter((c) => c.type === "EXAM")
-                                .length
-                            }{" "}
-                            Exams
-                          </span>
-                        </div>
-                      ) : (
-                        <span>No content</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => handleOpenDetailsModal(course)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="View Details"
-                        >
-                          <FaSearch />
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditModal(course)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Edit"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                "Are you sure you want to delete this course?"
-                              )
-                            ) {
-                              handleDeleteCourse(course.id);
-                            }
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {filteredCourses.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">
-                No courses found matching your filters.
-              </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+            {filteredCourses.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  No courses found matching your filters.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Modals */}
@@ -390,7 +533,11 @@ const CourseManagement = () => {
         <AssignFacultyModal
           course={selectedCourse}
           faculty={faculty}
-          assignedFaculty={selectedCourse.faculty || []}
+          assignedFaculty={
+            selectedCourse.facultyAssignments?.map(
+              (assignment) => assignment.faculty
+            ) || []
+          }
           onClose={() => setShowAssignFacultyModal(false)}
           onSubmit={(facultyIds) =>
             handleAssignFaculty(selectedCourse.id, facultyIds)
@@ -403,7 +550,10 @@ const CourseManagement = () => {
           course={{
             ...selectedCourse,
             title: selectedCourse.name, // Map backend name to frontend title
-            assignedFaculty: selectedCourse.faculty || [],
+            assignedFaculty:
+              selectedCourse.facultyAssignments?.map(
+                (assignment) => assignment.faculty
+              ) || [],
           }}
           onClose={() => setShowDetailsModal(false)}
         />

@@ -18,9 +18,9 @@ import Dashboard from "./components/dashboard/dashboard";
 import AboutPage from "./components/about/aboutPage";
 import ScrollToTop from "./components/scrollToTop";
 import AdminLogin from "./components/adminLogin";
-import AdminDashboard from "./components/adminDashboard/adminDashboard";
-import FacultyManagement from "./components/adminDashboard/facultyManagement";
-import CourseManagement from "./components/adminDashboard/courseManagement";
+import AdminDashboard from "./components/admin-dashboard/adminDashboard";
+import FacultyManagement from "./components/admin-dashboard/facultyManagement";
+import CourseManagement from "./components/admin-dashboard/courseManagement";
 
 const App = () => {
   return (
