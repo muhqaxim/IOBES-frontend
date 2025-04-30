@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FaSearch } from "react-icons/fa";
 import { AiFillEye, AiFillEdit, AiFillDelete } from "react-icons/ai";
 import CreateAssessment from "../createAssessment";
+import PdfViewerModal from "../pdfViewerModal";
 
 const QuizManagement = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -51,6 +52,13 @@ const QuizManagement = () => {
   const closeViewModal = () => {
     setIsViewModalOpen(false);
     setSelectedQuiz(null);
+  };
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfToView, setPdfToView] = useState(null);
+  const handleShowAssignment = (pdfData) => {
+    setCreateAssessment(false);
+    setPdfToView(pdfData);
+    setShowPdfViewer(true);
   };
 
   return (
@@ -131,11 +139,13 @@ const QuizManagement = () => {
                       className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
                     />
                     <AiFillEdit
-                      onClick={() => CreateAssessment({ 
-                        AssessmentType: "Quiz", 
-                        editMode: true, 
-                        quizData: quiz 
-                      })}
+                      onClick={() =>
+                        CreateAssessment({
+                          AssessmentType: "Quiz",
+                          editMode: true,
+                          quizData: quiz,
+                        })
+                      }
                       className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
                     />
                     <AiFillDelete
@@ -161,25 +171,23 @@ const QuizManagement = () => {
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white shadow-2xl w-full max-w-lg border-4 border-blue-800">
             <div className="bg-blue-800 text-white text-center py-3 shadow-md">
-              <h2 className="text-xl font-bold tracking-wide">
-                Quiz Details
-              </h2>
+              <h2 className="text-xl font-bold tracking-wide">Quiz Details</h2>
             </div>
 
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="font-medium text-gray-700">Course Name:</div>
                 <div>{selectedQuiz.courseName}</div>
-                
+
                 <div className="font-medium text-gray-700">Course Code:</div>
                 <div>{selectedQuiz.courseCode}</div>
-                
+
                 <div className="font-medium text-gray-700">Credit Hours:</div>
                 <div>{selectedQuiz.creditHours}</div>
-                
+
                 <div className="font-medium text-gray-700">Quiz No:</div>
                 <div>{selectedQuiz.quizNo}</div>
-                
+
                 <div className="font-medium text-gray-700">Total Marks:</div>
                 <div>{selectedQuiz.totalMarks}</div>
               </div>
@@ -196,7 +204,18 @@ const QuizManagement = () => {
           </div>
         </div>
       )}
-      {createAssessment && <CreateAssessment AssessmentType="Quiz" onClose={() => setCreateAssessment(false)} />}
+      {createAssessment && (
+        <CreateAssessment
+          AssessmentType="Quiz"
+          onGenerate={handleShowAssignment}
+          onClose={() => setCreateAssessment(false)}
+        />
+      )}
+      <PdfViewerModal
+        isOpen={showPdfViewer}
+        onClose={() => setShowPdfViewer(false)}
+        pdfData={pdfToView}
+      />
     </div>
   );
 };

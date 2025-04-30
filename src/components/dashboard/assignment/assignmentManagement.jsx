@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FaSearch, FaEdit, FaTrash } from "react-icons/fa";
 import { AiFillEye } from "react-icons/ai";
 import CreateAssessment from "../createAssessment";
+import PdfViewerModal from "../pdfViewerModal";
 const AssignmentManagement = () => {
   const [assignments, setAssignments] = useState([]);
   const [filteredAssignments, setFilteredAssignments] = useState([]);
@@ -13,7 +14,8 @@ const AssignmentManagement = () => {
 
   // Load assignments from localStorage on component mount
   useEffect(() => {
-    const savedAssignments = JSON.parse(localStorage.getItem("assignments")) || [];
+    const savedAssignments =
+      JSON.parse(localStorage.getItem("assignments")) || [];
     setAssignments(savedAssignments);
     setFilteredAssignments(savedAssignments);
   }, []);
@@ -32,12 +34,18 @@ const AssignmentManagement = () => {
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
-
+  const handleCreateAssessment = () => {
+    setCreateAssessment(true);
+  };
   const handleDeleteAssignment = (id) => {
-    const updatedAssignments = assignments.filter((assignment) => assignment.id !== id);
+    const updatedAssignments = assignments.filter(
+      (assignment) => assignment.id !== id
+    );
     setAssignments(updatedAssignments);
     localStorage.setItem("assignments", JSON.stringify(updatedAssignments));
   };
+
+  const handleEditAssignment = (id) => {};
 
   const openViewModal = (assignment) => {
     setSelectedAssignment(assignment);
@@ -47,6 +55,12 @@ const AssignmentManagement = () => {
   const closeViewModal = () => {
     setIsViewModalOpen(false);
     setSelectedAssignment(null);
+  };
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfToView, setPdfToView] = useState(null);
+  const handleShowAssignment = (pdfData) => {
+    setPdfToView(pdfData);
+    setShowPdfViewer(true);
   };
 
   return (
@@ -66,7 +80,7 @@ const AssignmentManagement = () => {
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
           </div>
           <button
-            onClick={() => CreateAssessment({ AssessmentType: "Assignment" })}
+            onClick={handleCreateAssessment}
             className="bg-gradient-to-tr from-[#141E30] to-[#243B55] hover:bg-gradient-to-tr hover:from-white/90 hover:to-white/80 hover:text-[#141E30] text-white py-2 px-6 rounded shadow-lg border border-white duration-300"
           >
             Create Assignment
@@ -127,11 +141,9 @@ const AssignmentManagement = () => {
                       className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
                     />
                     <FaEdit
-                      onClick={() => CreateAssessment({ 
-                        AssessmentType: "Assignment", 
-                        editMode: true, 
-                        assignmentData: assignment 
-                      })}
+                      onClick={() =>
+                        handleEditAssignment(assignment.id)
+                      }
                       className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
                     />
                     <FaTrash
@@ -166,16 +178,16 @@ const AssignmentManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="font-medium text-gray-700">Course Name:</div>
                 <div>{selectedAssignment.courseName}</div>
-                
+
                 <div className="font-medium text-gray-700">Course Code:</div>
                 <div>{selectedAssignment.courseCode}</div>
-                
+
                 <div className="font-medium text-gray-700">Credit Hours:</div>
                 <div>{selectedAssignment.creditHours}</div>
-                
+
                 <div className="font-medium text-gray-700">Assignment No:</div>
                 <div>{selectedAssignment.assignmentNo}</div>
-                
+
                 <div className="font-medium text-gray-700">Marks:</div>
                 <div>{selectedAssignment.marks || "Not specified"}</div>
               </div>
@@ -192,7 +204,18 @@ const AssignmentManagement = () => {
           </div>
         </div>
       )}
-      {createAssessment && <CreateAssessment AssessmentType={"Assignment"} onClose={() => setCreateAssessment(false)} />}
+      {createAssessment && (
+        <CreateAssessment
+          AssessmentType={"Assignment"}
+          onGenerate={handleShowAssignment}
+          onClose={() => setCreateAssessment(false)}
+        />
+      )}
+      <PdfViewerModal
+        isOpen={showPdfViewer}
+        onClose={() => setShowPdfViewer(false)}
+        pdfData={pdfToView}
+      />
     </div>
   );
 };

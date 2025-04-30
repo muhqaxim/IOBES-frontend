@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AiFillEye, AiFillEdit, AiFillDelete } from "react-icons/ai";
 import { FaSearch } from "react-icons/fa";
 import CreateAssessment from "../createAssessment";
+import PdfViewerModal from "../pdfViewerModal";
 const ExamManagement = () => {
   const [exams, setExams] = useState([]);
   const [filteredExams, setFilteredExams] = useState([]);
@@ -47,6 +48,13 @@ const ExamManagement = () => {
   const closeViewModal = () => {
     setIsViewModalOpen(false);
     setSelectedExam(null);
+  };
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfToView, setPdfToView] = useState(null);
+  const handleShowAssessment = (pdfData) => {
+    setCreateAssessment(false);
+    setPdfToView(pdfData);
+    setShowPdfViewer(true);
   };
 
   return (
@@ -133,11 +141,13 @@ const ExamManagement = () => {
                       className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
                     />
                     <AiFillEdit
-                      onClick={() => CreateAssessment({ 
-                        AssessmentType: "Exam", 
-                        editMode: true, 
-                        examData: exam 
-                      })}
+                      onClick={() =>
+                        CreateAssessment({
+                          AssessmentType: "Exam",
+                          editMode: true,
+                          examData: exam,
+                        })
+                      }
                       className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
                     />
                     <AiFillDelete
@@ -163,28 +173,26 @@ const ExamManagement = () => {
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white shadow-2xl w-full max-w-lg border-4 border-blue-800">
             <div className="bg-blue-800 text-white text-center py-3 shadow-md">
-              <h2 className="text-xl font-bold tracking-wide">
-                Exam Details
-              </h2>
+              <h2 className="text-xl font-bold tracking-wide">Exam Details</h2>
             </div>
 
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="font-medium text-gray-700">Course Name:</div>
                 <div>{selectedExam.courseName}</div>
-                
+
                 <div className="font-medium text-gray-700">Course Code:</div>
                 <div>{selectedExam.courseCode}</div>
-                
+
                 <div className="font-medium text-gray-700">Midterm Marks:</div>
                 <div>{selectedExam.midtermMarks}</div>
-                
+
                 <div className="font-medium text-gray-700">Final Marks:</div>
                 <div>{selectedExam.finalMarks}</div>
-                
+
                 <div className="font-medium text-gray-700">Internal Marks:</div>
                 <div>{selectedExam.internalMarks}</div>
-                
+
                 <div className="font-medium text-gray-700">Total Marks:</div>
                 <div>{selectedExam.totalMarks}</div>
               </div>
@@ -203,11 +211,18 @@ const ExamManagement = () => {
       )}
 
       {createAssessment && (
-        <CreateAssessment 
+        <CreateAssessment
           AssessmentType="Exam"
+          onGenerate={handleShowAssessment}
           onClose={() => setCreateAssessment(false)}
         />
       )}
+
+      <PdfViewerModal
+        isOpen={showPdfViewer}
+        onClose={() => setShowPdfViewer(false)}
+        pdfData={pdfToView}
+      />
     </div>
   );
 };

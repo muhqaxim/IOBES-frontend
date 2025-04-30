@@ -1,10 +1,27 @@
+import axios from "axios";
 import { useState } from "react";
 
-const CreateAssessment = ({ AssessmentType, onClose }) => {
+const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
+  const courseCLOMap = {
+    "Web Development": [
+      "Understand HTML",
+      "Style with CSS",
+      "Create apps using React",
+    ],
+    "Machine Learning": [
+      "Understand regression",
+      "Train classification models",
+      "Evaluate model performance",
+    ],
+  };
+
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [clos, setCLOs] = useState([]);
+  const [showCLODropdown, setShowCLODropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     assessmentType: AssessmentType,
     courseName: "",
-    courseCode: "",
     courseLevel: "undergraduate",
     topic: "",
     selectedCLOs: [],
@@ -14,8 +31,6 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
     timeLimit: 30,
     additionalInstructions: "",
   });
-
-  const [clos, setCLOs] = useState([{ id: 1, text: "" }]);
 
   const courseTypes = [
     "undergraduate",
@@ -33,6 +48,13 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
     "matching",
     "fill-in-the-blank",
   ];
+
+  const handleCourseChange = (event) => {
+    const course = event.target.value;
+    setSelectedCourse(course);
+    setCLOs(courseCLOMap[course] || []);
+    setFormData((prev) => ({ ...prev, selectedCLOs: [] })); // Reset selected CLOs
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,49 +76,28 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
     }
   };
 
-  const addCLO = () => {
-    setCLOs([...clos, { id: clos.length + 1, text: "" }]);
-  };
-
-  const updateCLO = (id, text) => {
-    setCLOs(clos.map((clo) => (clo.id === id ? { ...clo, text } : clo)));
-  };
-
-  const removeCLO = (id) => {
-    if (clos.length > 1) {
-      setCLOs(clos.filter((clo) => clo.id !== id));
-    }
-  };
-
-  const toggleCLOSelection = (id) => {
-    const currentSelected = [...formData.selectedCLOs];
-    if (currentSelected.includes(id)) {
+  const toggleCLOSelection = (cloText) => {
+    const selected = [...formData.selectedCLOs];
+    if (selected.includes(cloText)) {
       setFormData({
         ...formData,
-        selectedCLOs: currentSelected.filter((cloId) => cloId !== id),
+        selectedCLOs: selected.filter((text) => text !== cloText),
       });
     } else {
       setFormData({
         ...formData,
-        selectedCLOs: [...currentSelected, id],
+        selectedCLOs: [...selected, cloText],
       });
     }
   };
 
-  const generateAssessment = (e) => {
+  const generateAssessment = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    const selectedCLOsText = formData.selectedCLOs.join("\n");
 
-    // Prepare selected CLOs text for the prompt
-    const selectedCLOsText = clos
-      .filter((clo) => formData.selectedCLOs.includes(clo.id))
-      .map((clo) => clo.text)
-      .join("\n");
-
-    // Constructing the prompt that would be sent to the AI
     const prompt = `
-      Create a ${formData.assessmentType} for the course "${
-      formData.courseName
-    }" (${formData.courseCode})
+      Create a ${formData.assessmentType} for the course "${selectedCourse}"
       Course level: ${formData.courseLevel}
       Topic: ${formData.topic}
       
@@ -112,11 +113,20 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
       ${formData.additionalInstructions}
     `;
 
-    console.log("Prompt for AI:", prompt);
-    alert(
-      "Assessment prompt generated! In a real application, this would be sent to an AI model."
-    );
-    onClose();
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/gemini/generate`,
+        { prompt: prompt }
+      );
+
+      const generatedAssessment = response.data.content;
+
+      onGenerate(generatedAssessment);
+    } catch (error) {
+      console.error("Error generating:", error);
+      alert(error.response?.data?.message || error.message);
+    }
+    setLoading(false);
   };
 
   return (
@@ -128,40 +138,25 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
         </h1>
 
         <form onSubmit={generateAssessment} className="space-y-6">
-          
-          {/* Course Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Course Name
-              </label>
-              <input
-                type="text"
-                name="courseName"
-                value={formData.courseName}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Introduction to Computer Science"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Course Code
-              </label>
-              <input
-                type="text"
-                name="courseCode"
-                value={formData.courseCode}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., CS101"
-                required
-              />
-            </div>
+          {/* Course and Level Selects */}
+          <div>
+            <label className="block text-gray-700 font-semibold mb-2">
+              Select Course
+            </label>
+            <select
+              value={selectedCourse}
+              onChange={handleCourseChange}
+              className="border px-4 py-2 rounded w-full"
+            >
+              <option value="">Select a course</option>
+              {Object.keys(courseCLOMap).map((course) => (
+                <option key={course} value={course}>
+                  {course}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Course Level */}
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
               Course Level
@@ -170,7 +165,7 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
               name="courseLevel"
               value={formData.courseLevel}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
             >
               {courseTypes.map((level) => (
                 <option key={level} value={level}>
@@ -180,7 +175,6 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
             </select>
           </div>
 
-          {/* Topic */}
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
               Topic or Unit
@@ -190,7 +184,7 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
               name="topic"
               value={formData.topic}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="e.g., Object-Oriented Programming Concepts"
               required
             />
@@ -202,40 +196,51 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
               Course Learning Outcomes (CLOs)
             </h2>
 
-            {clos.map((clo) => (
-              <div key={clo.id} className="mb-3 flex items-start">
-                <input
-                  type="checkbox"
-                  checked={formData.selectedCLOs.includes(clo.id)}
-                  onChange={() => toggleCLOSelection(clo.id)}
-                  className="mt-2 h-5 w-5 text-blue-600 focus:ring-blue-500"
-                />
-                <div className="ml-2 flex-grow">
-                  <textarea
-                    value={clo.text}
-                    onChange={(e) => updateCLO(clo.id, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={`CLO ${clo.id}: e.g., Students will be able to apply object-oriented principles to design software solutions`}
-                    rows="2"
-                  />
+            <div className="flex flex-wrap gap-2 mb-3">
+              {formData.selectedCLOs.map((text, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full"
+                >
+                  <span className="mr-2 text-sm">{text}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleCLOSelection(text)}
+                    className="text-blue-600 hover:text-red-600 font-bold"
+                  >
+                    ×
+                  </button>
                 </div>
+              ))}
+            </div>
+
+            {clos.length > 0 && (
+              <>
                 <button
                   type="button"
-                  onClick={() => removeCLO(clo.id)}
-                  className="ml-2 text-red-500 hover:text-red-700"
+                  onClick={() => setShowCLODropdown(!showCLODropdown)}
+                  className="mb-3 px-3 py-1 bg-blue-200 text-blue-800 rounded-md hover:bg-blue-300"
                 >
-                  ✕
+                  {showCLODropdown ? "Hide CLOs" : "Select CLOs"}
                 </button>
-              </div>
-            ))}
 
-            <button
-              type="button"
-              onClick={addCLO}
-              className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              + Add Another CLO
-            </button>
+                {showCLODropdown && (
+                  <div className="space-y-2">
+                    {clos.map((clo, index) => (
+                      <label key={index} className="block">
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedCLOs.includes(clo)}
+                          onChange={() => toggleCLOSelection(clo)}
+                          className="mr-2"
+                        />
+                        {clo}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Assessment Configuration */}
@@ -248,7 +253,7 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
                 name="difficultyLevel"
                 value={formData.difficultyLevel}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 {difficultyLevels.map((level) => (
                   <option key={level} value={level}>
@@ -269,28 +274,26 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
                 max="50"
                 value={formData.numberOfQuestions}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
           </div>
 
-          {/* Question Types */}
+          {/* Question Type Selection */}
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
-              Question Types (Select all that apply)
+              Question Types
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="flex flex-wrap gap-3">
               {questionTypeOptions.map((type) => (
-                <label key={type} className="inline-flex items-center">
+                <label key={type} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     checked={formData.questionTypes.includes(type)}
                     onChange={() => handleQuestionTypeChange(type)}
-                    className="form-checkbox h-5 w-5 text-blue-600"
+                    className="text-blue-600"
                   />
-                  <span className="ml-2 capitalize">
-                    {type.replace("-", " ")}
-                  </span>
+                  <span className="capitalize">{type.replace(/-/g, " ")}</span>
                 </label>
               ))}
             </div>
@@ -304,38 +307,33 @@ const CreateAssessment = ({ AssessmentType, onClose }) => {
             <input
               type="number"
               name="timeLimit"
-              min="5"
-              max="180"
               value={formData.timeLimit}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
           </div>
 
           {/* Additional Instructions */}
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
-              Additional Instructions for AI
+              Additional Instructions
             </label>
             <textarea
               name="additionalInstructions"
               value={formData.additionalInstructions}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
               rows="3"
-              placeholder="e.g., Include real-world examples, focus on application of concepts, provide detailed solutions"
             />
           </div>
 
           {/* Submit Button */}
-          <div className="text-center">
+          <div className="text-right">
             <button
               type="submit"
-              className="px-6 py-3 hover:bg-[#141E30] text-white font-medium rounded-md bg-[#1C2B4A] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Generate{" "}
-              {formData.assessmentType.charAt(0).toUpperCase() +
-                formData.assessmentType.slice(1)}
+              {loading ? "Generating..." : "Generate"}
             </button>
           </div>
         </form>
