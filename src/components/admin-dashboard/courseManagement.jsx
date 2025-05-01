@@ -94,10 +94,17 @@ const CourseManagement = () => {
   // Handle adding a new course
   const handleAddCourse = async (courseData) => {
     try {
+      // Ensure clos is an array, even if empty
+      const payload = {
+        ...courseData,
+        clos: Array.isArray(courseData.clos) ? courseData.clos : [],
+      };
+  
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/courses`,
-        courseData
+        payload
       );
+  
       setCourses([...courses, response.data.course]);
       setShowAddModal(false);
     } catch (error) {
@@ -108,6 +115,7 @@ const CourseManagement = () => {
       );
     }
   };
+  
 
   // Handle updating a course
   const handleUpdateCourse = async (courseData) => {
