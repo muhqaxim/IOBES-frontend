@@ -38,7 +38,7 @@ const Footer = () => {
             About
           </Link>
           <Link
-            to="/dashboard"
+            to="/login"
             className={` font-medium text-white transition duration-300 ${location.pathname === "/dashboard" ? "text-yellow-400 underline" : "hover:text-yellow-400"}`}
           >
             Dashboard
