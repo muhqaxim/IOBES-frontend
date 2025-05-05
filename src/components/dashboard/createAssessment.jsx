@@ -501,7 +501,7 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
       Number of questions: ${formData.numberOfQuestions}
       Question types: ${formData.questionTypes.join(", ")}
       Time limit: ${formData.timeLimit} minutes
-      
+      Mention the CLO number with the each question. 
       Additional instructions:
       ${formData.additionalInstructions}
     `;
