@@ -386,7 +386,7 @@ const CourseManagement = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-blue-100">
                   {filteredCourses.map((course) => (
-                    <tr key={course.id}>
+                    <tr onClick={() => handleOpenDetailsModal(course)} key={course.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
