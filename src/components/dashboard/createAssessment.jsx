@@ -109,15 +109,15 @@
 //       Create a ${formData.assessmentType} for the course "${selectedCourse}"
 //       Course level: ${formData.courseLevel}
 //       Topic: ${formData.topic}
-      
+
 //       Course Learning Outcomes to assess:
 //       ${selectedCLOsText}
-      
+
 //       Difficulty level: ${formData.difficultyLevel}
 //       Number of questions: ${formData.numberOfQuestions}
 //       Question types: ${formData.questionTypes.join(", ")}
 //       Time limit: ${formData.timeLimit} minutes
-      
+
 //       Additional instructions:
 //       ${formData.additionalInstructions}
 //     `;
@@ -353,7 +353,6 @@
 
 // export default CreateAssessment;
 
-
 import axios from "axios";
 import { useState, useEffect } from "react";
 
@@ -366,6 +365,7 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     assessmentType: AssessmentType,
+    courseId: "",
     courseName: "",
     courseLevel: "undergraduate",
     topic: "",
@@ -420,29 +420,31 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
   // Handle course selection and fetch/set CLOs for the selected course
   const handleCourseChange = (event) => {
     const courseId = event.target.value;
-    
+    formData.courseId = courseId;
     if (!courseId) {
       setSelectedCourse("");
       setCLOs([]);
       setFormData((prev) => ({ ...prev, selectedCLOs: [] }));
       return;
     }
-    
+
     // Find selected course object from courses array
-    const selectedCourseObj = courses.find(course => course.id.toString() === courseId);
-    
+    const selectedCourseObj = courses.find(
+      (course) => course.id.toString() === courseId
+    );
+
     if (selectedCourseObj) {
       setSelectedCourse(selectedCourseObj.name);
-      
+
       // Set CLOs from the selected course
       const courseCLOs = selectedCourseObj.clos || [];
       setCLOs(courseCLOs);
-      
+
       // Reset selected CLOs when changing course
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData((prev) => ({
+        ...prev,
         courseName: selectedCourseObj.name,
-        selectedCLOs: [] 
+        selectedCLOs: [],
       }));
     }
   };
@@ -469,8 +471,8 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
 
   const toggleCLOSelection = (clo) => {
     const selected = [...formData.selectedCLOs];
-    const cloText = typeof clo === 'object' ? clo.description : clo;
-    
+    const cloText = typeof clo === "object" ? clo.description : clo;
+
     if (selected.includes(cloText)) {
       setFormData({
         ...formData,
@@ -514,7 +516,11 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
 
       const generatedAssessment = response.data.content;
 
-      onGenerate(generatedAssessment);
+      onGenerate(
+        generatedAssessment,
+        formData?.courseId,
+        formData.selectedCLOs
+      );
     } catch (error) {
       console.error("Error generating:", error);
       alert(error.response?.data?.message || error.message);
@@ -543,7 +549,7 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
               Select Course
             </label>
             <select
-              value={courses.find(c => c.name === selectedCourse)?.id || ""}
+              value={courses.find((c) => c.name === selectedCourse)?.id || ""}
               onChange={handleCourseChange}
               className="border px-4 py-2 rounded w-full"
               disabled={loading}
@@ -551,7 +557,7 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
               <option value="">Select a course</option>
               {courses.map((course) => (
                 <option key={course.id} value={course.id}>
-                  {course.name} ({course.code || 'No code'})
+                  {course.name} ({course.code || "No code"})
                 </option>
               ))}
             </select>
@@ -631,7 +637,8 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
                 {showCLODropdown && (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {clos.map((clo, index) => {
-                      const cloText = typeof clo === 'object' ? clo.description : clo;
+                      const cloText =
+                        typeof clo === "object" ? clo.description : clo;
                       return (
                         <label key={index} className="block">
                           <input
@@ -649,7 +656,9 @@ const CreateAssessment = ({ AssessmentType, onGenerate, onClose }) => {
                 )}
               </>
             ) : selectedCourse ? (
-              <p className="text-gray-600">No CLOs available for this course.</p>
+              <p className="text-gray-600">
+                No CLOs available for this course.
+              </p>
             ) : (
               <p className="text-gray-600">Select a course to view CLOs.</p>
             )}

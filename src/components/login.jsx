@@ -37,12 +37,12 @@ const Login = () => {
       });
       
       const data = await res.json(); // Parse the JSON response
-      
+      console.log(data)
       if (res.ok) {
         // Save the token to localStorage for future authenticated requests
         localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data.userId);
-        localStorage.setItem('name', data.name);
+        localStorage.setItem('userId', data.user.id);
+        localStorage.setItem('name', data.user.name);
         navigate("/dashboard");
       } else {
         // Show error message from API

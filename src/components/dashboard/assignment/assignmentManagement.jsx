@@ -9,15 +9,43 @@ const AssignmentManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [facultyId, setFacultyId] = useState(null);
 
   const [createAssessment, setCreateAssessment] = useState(false);
 
   // Load assignments from localStorage on component mount
   useEffect(() => {
-    const savedAssignments =
-      JSON.parse(localStorage.getItem("assignments")) || [];
-    setAssignments(savedAssignments);
-    setFilteredAssignments(savedAssignments);
+    const fetchFacultyContent = async () => {
+      try {
+        const faculty = JSON.parse(localStorage.getItem("user"));
+        setFacultyId(faculty.id);
+
+        if (!facultyId) return;
+
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/content/faculty/${facultyId}`
+        );
+        const data = await res.json();
+
+        // Transform content for table display
+        const formatted = data.map((item, idx) => ({
+          id: item.id,
+          courseName: item.course?.name || "N/A",
+          courseCode: item.course?.code || "N/A",
+          creditHours: item.course?.creditHours || "N/A",
+          assignmentNo: idx + 1,
+          marks: "N/A", // You can replace this with actual marks if available
+          questions: item.questions,
+        }));
+
+        setAssignments(formatted);
+        setFilteredAssignments(formatted);
+      } catch (err) {
+        console.error("Error fetching faculty content:", err);
+      }
+    };
+
+    fetchFacultyContent();
   }, []);
 
   // Filter assignments whenever the assignments or searchQuery changes
@@ -58,8 +86,13 @@ const AssignmentManagement = () => {
   };
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfToView, setPdfToView] = useState(null);
-  const handleShowAssignment = (pdfData) => {
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [selectedCLOs, setSelectedCLOs] = useState([]);
+
+  const handleShowAssignment = (pdfData, courseId, cloIds) => {
     setPdfToView(pdfData);
+    setSelectedCourseId(courseId);
+    setSelectedCLOs(cloIds);
     setShowPdfViewer(true);
   };
 
@@ -141,9 +174,7 @@ const AssignmentManagement = () => {
                       className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
                     />
                     <FaEdit
-                      onClick={() =>
-                        handleEditAssignment(assignment.id)
-                      }
+                      onClick={() => handleEditAssignment(assignment.id)}
                       className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
                     />
                     <FaTrash
@@ -215,6 +246,9 @@ const AssignmentManagement = () => {
         isOpen={showPdfViewer}
         onClose={() => setShowPdfViewer(false)}
         pdfData={pdfToView}
+        courseId={selectedCourseId}
+        cloIds={selectedCLOs}
+        facultyId={facultyId}
       />
     </div>
   );
