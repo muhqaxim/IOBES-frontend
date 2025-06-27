@@ -3,6 +3,7 @@ import { FaSearch } from "react-icons/fa";
 import { AiFillEye, AiFillEdit, AiFillDelete } from "react-icons/ai";
 import CreateAssessment from "../createAssessment";
 import PdfViewerModal from "../pdfViewerModal";
+import axios from "axios";
 
 const QuizManagement = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -10,20 +11,49 @@ const QuizManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
-
+  const [facultyId, setFacultyId] = useState(null);
   const [createAssessment, setCreateAssessment] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Load quizzes from localStorage on component mount
+  // Fetch quizzes from API based on logged-in faculty
   useEffect(() => {
-    const savedQuizzes = localStorage.getItem("quizzes");
-    if (savedQuizzes) {
-      const parsedQuizzes = JSON.parse(savedQuizzes);
-      setQuizzes(parsedQuizzes);
-      setFilteredQuizzes(parsedQuizzes);
-    }
+    const fetchFacultyContent = async () => {
+      try {
+        setLoading(true);
+        const faculty = localStorage.getItem("userId");
+        setFacultyId(faculty);
+
+        // Fetch quizzes for the faculty
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/content/faculty/${faculty}`
+        );
+        const data = res.data;
+
+        // Filter quizzes for the current faculty
+        const formatted = data
+          .filter((item) => item.type === "QUIZ")
+          .map((item, idx) => ({
+            id: item.id,
+            courseName: item.course?.name || "N/A",
+            courseCode: item.course?.code || "N/A",
+            creditHours: item.course?.creditHours || "N/A",
+            quizNo: idx + 1,
+            totalMarks: item.totalMarks || "N/A", // Replace with actual total marks if available
+            questions: item.questions,
+          }));
+
+        setQuizzes(formatted);
+        setFilteredQuizzes(formatted);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching faculty quizzes:", err);
+      }
+    };
+
+    fetchFacultyContent();
   }, []);
 
-  // Filter quizzes whenever the quizzes or searchQuery changes
+  // Filter quizzes based on the search query
   useEffect(() => {
     const filtered = quizzes.filter((quiz) =>
       [quiz.courseName, quiz.courseCode, quiz.quizNo]
@@ -38,26 +68,46 @@ const QuizManagement = () => {
     setSearchQuery(e.target.value);
   };
 
-  const handleDeleteQuiz = (id) => {
-    const updatedQuizzes = quizzes.filter((quiz) => quiz.id !== id);
-    setQuizzes(updatedQuizzes);
-    localStorage.setItem("quizzes", JSON.stringify(updatedQuizzes));
+  const handleCreateAssessment = () => {
+    setCreateAssessment(true);
+  };
+
+  // Handle quiz deletion
+  const handleDeleteQuiz = async (id) => {
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/content/${id}`); // Delete quiz from backend
+      const updatedQuizzes = quizzes.filter((quiz) => quiz.id !== id);
+      setQuizzes(updatedQuizzes);
+      setFilteredQuizzes(updatedQuizzes);
+      alert("Quiz deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting quiz:", err);
+      alert("Failed to delete quiz.");
+    }
   };
 
   const openViewModal = (quiz) => {
-    setSelectedQuiz(quiz);
-    setIsViewModalOpen(true);
+    setPdfToView(quiz?.questions?.text);
+    setSelectedCourseId(null);
+    setSelectedCLOs(null);
+    setShowPdfViewer(true);
   };
 
   const closeViewModal = () => {
     setIsViewModalOpen(false);
     setSelectedQuiz(null);
   };
+
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfToView, setPdfToView] = useState(null);
-  const handleShowAssignment = (pdfData) => {
-    setCreateAssessment(false);
+
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [selectedCLOs, setSelectedCLOs] = useState([]);
+
+  const handleShowAssignment = (pdfData, courseId, cloIds) => {
     setPdfToView(pdfData);
+    setSelectedCourseId(courseId);
+    setSelectedCLOs(cloIds);
     setShowPdfViewer(true);
   };
 
@@ -87,121 +137,88 @@ const QuizManagement = () => {
       </header>
 
       {/* Quiz Table */}
-      <div className="overflow-x-auto shadow-lg rounded border border-blue-300 mt-6">
-        <table className="min-w-full bg-white text-center">
-          <thead>
-            <tr className="bg-blue-100 text-blue-800">
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Course Name
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Course Code
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Credit Hours
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Quiz No
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Total Marks
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredQuizzes.length > 0 ? (
-              filteredQuizzes.map((quiz) => (
-                <tr
-                  key={quiz.id}
-                  className="hover:bg-blue-50 border border-blue-300 transition-all"
-                >
-                  <td className="px-6 border-r-2 border-blue-300">
-                    {quiz.courseName}
-                  </td>
-                  <td className="px-6 border-x-2 border-blue-300">
-                    {quiz.courseCode}
-                  </td>
-                  <td className="px-6 border-x-2 border-blue-300">
-                    {quiz.creditHours}
-                  </td>
-                  <td className="px-6 border-x-2 border-blue-300">
-                    {quiz.quizNo}
-                  </td>
-                  <td className="px-6 border-x-2 border-blue-300">
-                    {quiz.totalMarks}
-                  </td>
-                  <td className="py-3 px-6 flex justify-center gap-6 border-blue-300">
-                    <AiFillEye
-                      onClick={() => openViewModal(quiz)}
-                      className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
-                    />
-                    <AiFillEdit
-                      onClick={() =>
-                        CreateAssessment({
-                          AssessmentType: "Quiz",
-                          editMode: true,
-                          quizData: quiz,
-                        })
-                      }
-                      className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
-                    />
-                    <AiFillDelete
-                      onClick={() => handleDeleteQuiz(quiz.id)}
-                      className="text-red-600 cursor-pointer hover:text-red-700 transform transition duration-150"
-                    />
+      {loading ? (
+        <div className="w-full flex items-center justify-center h-[500px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#141E30]"></div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto shadow-lg rounded border border-blue-300 mt-6">
+          <table className="min-w-full bg-white text-center">
+            <thead>
+              <tr className="bg-blue-100 text-blue-800">
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Course Name
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Course Code
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Credit Hours
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Quiz No
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Total Marks
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredQuizzes.length > 0 ? (
+                filteredQuizzes.map((quiz) => (
+                  <tr
+                    key={quiz.id}
+                    className="hover:bg-blue-50 border border-blue-300 transition-all"
+                  >
+                    <td className="px-6 border-r-2 border-blue-300">
+                      {quiz.courseName}
+                    </td>
+                    <td className="px-6 border-x-2 border-blue-300">
+                      {quiz.courseCode}
+                    </td>
+                    <td className="px-6 border-x-2 border-blue-300">
+                      {quiz.creditHours}
+                    </td>
+                    <td className="px-6 border-x-2 border-blue-300">
+                      {quiz.quizNo}
+                    </td>
+                    <td className="px-6 border-x-2 border-blue-300">
+                      {quiz.totalMarks}
+                    </td>
+                    <td className="py-3 px-6 flex justify-center gap-6 border-blue-300">
+                      <AiFillEye
+                        onClick={() => openViewModal(quiz)}
+                        className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
+                      />
+                      <AiFillEdit
+                        onClick={() =>
+                          setCreateAssessment({
+                            AssessmentType: "Quiz",
+                            editMode: true,
+                            quizData: quiz,
+                          })
+                        }
+                        className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
+                      />
+                      <AiFillDelete
+                        onClick={() => handleDeleteQuiz(quiz.id)}
+                        className="text-red-600 cursor-pointer hover:text-red-700 transform transition duration-150"
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="py-8 px-6 text-gray-500">
+                    No quizzes available.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="py-8 px-6 text-gray-500">
-                  No quizzes available.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* View Quiz Modal */}
-      {isViewModalOpen && selectedQuiz && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white shadow-2xl w-full max-w-lg border-4 border-blue-800">
-            <div className="bg-blue-800 text-white text-center py-3 shadow-md">
-              <h2 className="text-xl font-bold tracking-wide">Quiz Details</h2>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="font-medium text-gray-700">Course Name:</div>
-                <div>{selectedQuiz.courseName}</div>
-
-                <div className="font-medium text-gray-700">Course Code:</div>
-                <div>{selectedQuiz.courseCode}</div>
-
-                <div className="font-medium text-gray-700">Credit Hours:</div>
-                <div>{selectedQuiz.creditHours}</div>
-
-                <div className="font-medium text-gray-700">Quiz No:</div>
-                <div>{selectedQuiz.quizNo}</div>
-
-                <div className="font-medium text-gray-700">Total Marks:</div>
-                <div>{selectedQuiz.totalMarks}</div>
-              </div>
-
-              <div className="mt-8 flex justify-end">
-                <button
-                  onClick={closeViewModal}
-                  className="bg-blue-800 hover:bg-blue-900 text-white font-medium px-6 py-2 rounded shadow-lg"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
       {createAssessment && (
@@ -211,10 +228,15 @@ const QuizManagement = () => {
           onClose={() => setCreateAssessment(false)}
         />
       )}
+
       <PdfViewerModal
         isOpen={showPdfViewer}
         onClose={() => setShowPdfViewer(false)}
         pdfData={pdfToView}
+        courseId={selectedCourseId}
+        cloIds={selectedCLOs}
+        facultyId={facultyId}
+        typeOfData={"Quiz"}
       />
     </div>
   );

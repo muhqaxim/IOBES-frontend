@@ -1,23 +1,28 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { marked } from 'marked';
-import html2pdf from 'html2pdf.js';
+import React, { useEffect, useRef, useState } from "react";
+import { marked } from "marked";
+import html2pdf from "html2pdf.js";
+import axios from "axios"; // ✅ FIX: Import axios
 
-const PdfViewerModal = ({ isOpen, onClose, pdfData, courseId, cloIds }) => {
+const PdfViewerModal = ({ isOpen, onClose, typeOfData, pdfData, courseId, cloIds }) => {
   const containerRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [content, setContent] = useState(pdfData || '');
+  const [content, setContent] = useState(pdfData || "");
 
   useEffect(() => {
-    setContent(pdfData || '');
+    setContent(pdfData || "");
   }, [pdfData]);
 
   useEffect(() => {
     if (!isOpen || isEditing || !containerRef.current) return;
 
-    containerRef.current.innerHTML = '';
+    containerRef.current.innerHTML = "";
     let htmlContent;
 
-    if (content.includes('#') || content.includes('*') || content.includes('\n')) {
+    if (
+      content.includes("#") ||
+      content.includes("*") ||
+      content.includes("\n")
+    ) {
       htmlContent = marked.parse(content);
     } else {
       htmlContent = `<pre class="plain-text">${content}</pre>`;
@@ -26,43 +31,62 @@ const PdfViewerModal = ({ isOpen, onClose, pdfData, courseId, cloIds }) => {
     containerRef.current.innerHTML = `<div class="styled-doc">${htmlContent}</div>`;
   }, [isOpen, content, isEditing]);
 
-const downloadAsPdf = async () => {
-  // try {
-  //   const faculty = JSON.parse(localStorage.getItem("user"));
-  //   const facultyId = faculty?.id;
+  const downloadAsPdf = async () => {
+    try {
+      const storedFaculty = localStorage.getItem("userId");
+      if (!storedFaculty) {
+        alert("No faculty information found in localStorage.");
+        return;
+      }
 
-  //   if (!facultyId || !courseId || !cloIds?.length) {
-  //     alert("Missing facultyId, courseId, or CLOs");
-  //     return;
-  //   }
+      let facultyId;
+      try {
+        facultyId = storedFaculty;
+      } catch (parseErr) {
+        console.error("Failed to parse faculty data:", parseErr);
+        alert("Stored faculty data is corrupted.");
+        return;
+      }
 
-  //   const payload = {
-  //     title: "Assignment - " + new Date().toLocaleString(),
-  //     type: "Assignment",
-  //     questions: content,
-  //     courseId,
-  //     cloIds,
-  //     facultyId,
-  //   };
+      // if (!facultyId || !courseId || !cloIds?.length) {
+      //   alert("Missing facultyId, courseId, or CLOs");
+      //   return;
+      // }
 
-  //   await axios.post(`${import.meta.env.VITE_API_URL}/content`, payload);
-  //   console.log("Content saved to backend",payload);
-  // } catch (err) {
-  //   console.error("Error saving before download:", err);
-  //   alert("Failed to save content before downloading.");
-  //   return;
-  // }
+      if (courseId && cloIds) {
+        const payload = {
+          title: typeOfData + " - " + new Date().toLocaleString(),
+          type: typeOfData?.toUpperCase(), // FIXED: Must match Prisma enum exactly!
+          questions: { text: content }, // FIXED: send JSON, not raw string
+          courseId,
+          cloIds,
+          facultyId,
+        };
+        console.log(payload)
+        const apiUrl = `${import.meta.env.VITE_API_URL}/content`;
 
-  const element = containerRef.current;
-  const opt = {
-    margin: 0.5,
-    filename: 'document.pdf',
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 1 },
-    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        const response = await axios.post(apiUrl, payload);
+        console.log("Content saved to backend:", response.data);
+      }
+      // Only download PDF if saving succeeded
+      const element = containerRef.current;
+      const opt = {
+        margin: 0.5,
+        filename: "document.pdf",
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 1 },
+        jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+      };
+      html2pdf().from(element).set(opt).save();
+
+      onClose();
+    } catch (err) {
+      console.error("Error saving before download:", err);
+      alert(
+        "Failed to save content before downloading. See console for details."
+      );
+    }
   };
-  html2pdf().from(element).set(opt).save();
-};
 
   const toggleEdit = () => setIsEditing(!isEditing);
 
@@ -72,13 +96,15 @@ const downloadAsPdf = async () => {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
       <div className="bg-white text-black w-[70%] h-[80vh] flex flex-col rounded-lg shadow-lg overflow-hidden">
         <div className="flex justify-between items-center p-4 border-b bg-gray-100">
-          <h3 className="text-lg font-semibold">{isEditing ? 'Edit Document' : 'Document Viewer'}</h3>
+          <h3 className="text-lg font-semibold">
+            {isEditing ? "Edit Document" : "Document Viewer"}
+          </h3>
           <div className="space-x-2">
             <button
               onClick={toggleEdit}
               className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm"
             >
-              {isEditing ? 'Preview' : 'Edit'}
+              {isEditing ? "Preview" : "Edit"}
             </button>
             <button
               onClick={downloadAsPdf}
@@ -110,21 +136,32 @@ const downloadAsPdf = async () => {
 
       <style jsx>{`
         .styled-doc {
-          font-family: 'Georgia', serif;
+          font-family: "Georgia", serif;
           color: #222;
           line-height: 1.8;
           font-size: 16px;
           white-space: pre-wrap;
         }
-        .styled-doc h1, .styled-doc h2, .styled-doc h3, .styled-doc h4 {
+        .styled-doc h1,
+        .styled-doc h2,
+        .styled-doc h3,
+        .styled-doc h4 {
           font-weight: bold;
           margin-top: 5px;
           margin-bottom: 5px;
         }
-        .styled-doc h1 { font-size: 2rem; }
-        .styled-doc h2 { font-size: 1.75rem; }
-        .styled-doc h3 { font-size: 1.5rem; }
-        .styled-doc h4 { font-size: 1.25rem; }
+        .styled-doc h1 {
+          font-size: 2rem;
+        }
+        .styled-doc h2 {
+          font-size: 1.75rem;
+        }
+        .styled-doc h3 {
+          font-size: 1.5rem;
+        }
+        .styled-doc h4 {
+          font-size: 1.25rem;
+        }
         .styled-doc p {
           margin-bottom: 5px;
           text-indent: 0em;
@@ -141,7 +178,8 @@ const downloadAsPdf = async () => {
           border-radius: 0.25rem;
           overflow-x: auto;
         }
-        .styled-doc ul, .styled-doc ol {
+        .styled-doc ul,
+        .styled-doc ol {
           padding-left: 0rem;
           margin-bottom: 5px;
         }
@@ -150,7 +188,7 @@ const downloadAsPdf = async () => {
         }
         .plain-text {
           font-size: 16px;
-          font-family: 'Georgia', serif;
+          font-family: "Georgia", serif;
           white-space: pre-wrap;
           line-height: 1;
         }

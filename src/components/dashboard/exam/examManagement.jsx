@@ -3,6 +3,8 @@ import { AiFillEye, AiFillEdit, AiFillDelete } from "react-icons/ai";
 import { FaSearch } from "react-icons/fa";
 import CreateAssessment from "../createAssessment";
 import PdfViewerModal from "../pdfViewerModal";
+import axios from "axios"; // Ensure axios is imported for API calls
+
 const ExamManagement = () => {
   const [exams, setExams] = useState([]);
   const [filteredExams, setFilteredExams] = useState([]);
@@ -10,20 +12,56 @@ const ExamManagement = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
   const [createAssessment, setCreateAssessment] = useState(false);
-
-  // Load exams from localStorage on component mount
+  const [facultyId, setFacultyId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  // Fetch exams for the logged-in faculty from the API
   useEffect(() => {
-    const storedData = JSON.parse(localStorage.getItem("examData")) || [];
-    setExams(storedData);
-    setFilteredExams(storedData);
+    const fetchFacultyExams = async () => {
+      try {
+        setLoading(true);
+        const faculty = localStorage.getItem("userId");
+        setFacultyId(faculty);
+
+        // Fetch exams for the faculty from the backend
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/content/faculty/${faculty}`
+        );
+        const data = res.data;
+
+        // Filter exams for the current faculty
+        const formatted = data
+          .filter((item) => item.type === "EXAM")
+          .map((item, idx) => ({
+            id: item.id,
+            courseName: item.course?.name || "N/A",
+            courseCode: item.course?.code || "N/A",
+            creditHours: item.course?.creditHours || "N/A",
+            examNo: idx + 1,
+            midtermMarks: item.midtermMarks || "N/A",
+            finalMarks: item.finalMarks || "N/A",
+            internalMarks: item.internalMarks || "N/A",
+            totalMarks: item.totalMarks || "N/A",
+            questions: item.questions,
+          }));
+
+        setExams(formatted);
+        setFilteredExams(formatted);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching faculty exams:", err);
+      }
+    };
+
+    fetchFacultyExams();
   }, []);
 
-  // Filter exams whenever the exams or searchQuery changes
+  // Filter exams based on search query
   useEffect(() => {
-    const filtered = exams.filter(
-      (exam) =>
-        exam.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        exam.courseCode.toLowerCase().includes(searchQuery.toLowerCase())
+    const filtered = exams.filter((exam) =>
+      [exam.courseName, exam.courseCode, exam.examNo]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
     );
     setFilteredExams(filtered);
   }, [exams, searchQuery]);
@@ -32,31 +70,47 @@ const ExamManagement = () => {
     setSearchQuery(e.target.value);
   };
 
-  const handleDeleteExam = (id) => {
-    if (window.confirm("Are you sure you want to delete this exam?")) {
+  const handleCreateAssessment = () => {
+    setCreateAssessment(true);
+  };
+
+  // Handle delete exam
+  const handleDeleteExam = async (id) => {
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/content/${id}`); // Delete exam from backend
       const updatedExams = exams.filter((exam) => exam.id !== id);
       setExams(updatedExams);
-      localStorage.setItem("examData", JSON.stringify(updatedExams));
+      setFilteredExams(updatedExams);
+      alert("Exam deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting exam:", err);
+      alert("Failed to delete exam.");
     }
   };
 
   const openViewModal = (exam) => {
-    setSelectedExam(exam);
-    setIsViewModalOpen(true);
+    setPdfToView(exam?.questions?.text);
+    setSelectedCourseId(null);
+    setSelectedCLOs(null);
+    setShowPdfViewer(true);
   };
 
   const closeViewModal = () => {
     setIsViewModalOpen(false);
     setSelectedExam(null);
   };
+
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfToView, setPdfToView] = useState(null);
-  const handleShowAssessment = (pdfData) => {
-    setCreateAssessment(false);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [selectedCLOs, setSelectedCLOs] = useState([]);
+
+  const handleShowAssignment = (pdfData, courseId, cloIds) => {
     setPdfToView(pdfData);
+    setSelectedCourseId(courseId);
+    setSelectedCLOs(cloIds);
     setShowPdfViewer(true);
   };
-
   return (
     <div className="min-h-screen font-inter">
       {/* Header */}
@@ -83,137 +137,104 @@ const ExamManagement = () => {
       </header>
 
       {/* Exam Table */}
-      <div className="mt-6 overflow-x-auto shadow-lg rounded border border-blue-300">
-        <table className="min-w-full bg-white text-center">
-          <thead>
-            <tr className="bg-blue-100 text-blue-800">
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Course Name
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Course Code
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Midterm Marks
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Final Marks
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Internal Marks
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Total Marks
-              </th>
-              <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredExams.length > 0 ? (
-              filteredExams.map((exam) => (
-                <tr
-                  key={exam.id}
-                  className="hover:bg-blue-50 border border-blue-300 transition-all"
-                >
-                  <td className="px-6 border-r-2 border-blue-300">
-                    {exam.courseName}
-                  </td>
-                  <td className="px-6 border-r-2 border-blue-300">
-                    {exam.courseCode}
-                  </td>
-                  <td className="px-6 border-r-2 border-blue-300">
-                    {exam.midtermMarks}
-                  </td>
-                  <td className="px-6 border-r-2 border-blue-300">
-                    {exam.finalMarks}
-                  </td>
-                  <td className="px-6 border-r-2 border-blue-300">
-                    {exam.internalMarks}
-                  </td>
-                  <td className="px-6 border-r-2 border-blue-300">
-                    {exam.totalMarks}
-                  </td>
-                  <td className="py-3 px-6 flex justify-center gap-6 border-blue-300">
-                    <AiFillEye
-                      onClick={() => openViewModal(exam)}
-                      className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
-                    />
-                    <AiFillEdit
-                      onClick={() =>
-                        CreateAssessment({
-                          AssessmentType: "Exam",
-                          editMode: true,
-                          examData: exam,
-                        })
-                      }
-                      className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
-                    />
-                    <AiFillDelete
-                      onClick={() => handleDeleteExam(exam.id)}
-                      className="text-red-600 cursor-pointer hover:text-red-700 transform transition duration-150"
-                    />
+      {loading ? (
+        <div className="w-full flex items-center justify-center h-[500px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#141E30]"></div>
+        </div>
+      ) : (
+        <div className="mt-6 overflow-x-auto shadow-lg rounded border border-blue-300">
+          <table className="min-w-full bg-white text-center">
+            <thead>
+              <tr className="bg-blue-100 text-blue-800">
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Course Name
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Course Code
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Midterm Marks
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Final Marks
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Internal Marks
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Total Marks
+                </th>
+                <th className="py-2 px-6 font-medium border border-blue-300 border-b-2 border-r-2">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredExams.length > 0 ? (
+                filteredExams.map((exam) => (
+                  <tr
+                    key={exam.id}
+                    className="hover:bg-blue-50 border border-blue-300 transition-all"
+                  >
+                    <td className="px-6 border-r-2 border-blue-300">
+                      {exam.courseName}
+                    </td>
+                    <td className="px-6 border-r-2 border-blue-300">
+                      {exam.courseCode}
+                    </td>
+                    <td className="px-6 border-r-2 border-blue-300">
+                      {exam.midtermMarks}
+                    </td>
+                    <td className="px-6 border-r-2 border-blue-300">
+                      {exam.finalMarks}
+                    </td>
+                    <td className="px-6 border-r-2 border-blue-300">
+                      {exam.internalMarks}
+                    </td>
+                    <td className="px-6 border-r-2 border-blue-300">
+                      {exam.totalMarks}
+                    </td>
+                    <td className="py-3 px-6 flex justify-center gap-6 border-blue-300">
+                      <AiFillEye
+                        onClick={() => openViewModal(exam)}
+                        className="text-green-600 cursor-pointer hover:text-green-700 transform transition duration-150"
+                      />
+                      <AiFillEdit
+                        onClick={() =>
+                          setCreateAssessment({
+                            AssessmentType: "Exam",
+                            editMode: true,
+                            examData: exam,
+                          })
+                        }
+                        className="text-blue-600 cursor-pointer hover:text-blue-700 transform transition duration-150"
+                      />
+                      <AiFillDelete
+                        onClick={() => handleDeleteExam(exam.id)}
+                        className="text-red-600 cursor-pointer hover:text-red-700 transform transition duration-150"
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="py-8 px-6 text-gray-500 text-center"
+                  >
+                    No exams available.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="7" className="py-8 px-6 text-gray-500 text-center">
-                  No exams available.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* View Exam Modal */}
-      {isViewModalOpen && selectedExam && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white shadow-2xl w-full max-w-lg border-4 border-blue-800">
-            <div className="bg-blue-800 text-white text-center py-3 shadow-md">
-              <h2 className="text-xl font-bold tracking-wide">Exam Details</h2>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="font-medium text-gray-700">Course Name:</div>
-                <div>{selectedExam.courseName}</div>
-
-                <div className="font-medium text-gray-700">Course Code:</div>
-                <div>{selectedExam.courseCode}</div>
-
-                <div className="font-medium text-gray-700">Midterm Marks:</div>
-                <div>{selectedExam.midtermMarks}</div>
-
-                <div className="font-medium text-gray-700">Final Marks:</div>
-                <div>{selectedExam.finalMarks}</div>
-
-                <div className="font-medium text-gray-700">Internal Marks:</div>
-                <div>{selectedExam.internalMarks}</div>
-
-                <div className="font-medium text-gray-700">Total Marks:</div>
-                <div>{selectedExam.totalMarks}</div>
-              </div>
-
-              <div className="mt-8 flex justify-end">
-                <button
-                  onClick={closeViewModal}
-                  className="bg-blue-800 hover:bg-blue-900 text-white font-medium px-6 py-2 rounded shadow-lg"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
       {createAssessment && (
         <CreateAssessment
           AssessmentType="Exam"
-          onGenerate={handleShowAssessment}
+          onGenerate={handleShowAssignment}
           onClose={() => setCreateAssessment(false)}
         />
       )}
@@ -222,6 +243,10 @@ const ExamManagement = () => {
         isOpen={showPdfViewer}
         onClose={() => setShowPdfViewer(false)}
         pdfData={pdfToView}
+        courseId={selectedCourseId}
+        cloIds={selectedCLOs}
+        facultyId={facultyId}
+        typeOfData="Exam"
       />
     </div>
   );

@@ -8,7 +8,7 @@ import {
   FaSearch,
   FaTimes,
 } from "react-icons/fa";
-import   {FaBuildingColumns} from 'react-icons/fa6';
+import { FaBuildingColumns } from "react-icons/fa6";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 
@@ -68,11 +68,6 @@ const CourseManagement = () => {
       course.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading && !courses.length)
-    return <div className="text-center py-20">Loading courses...</div>;
-  if (error)
-    return <div className="text-red-500 text-center py-4">Error: {error}</div>;
-
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -93,57 +88,69 @@ const CourseManagement = () => {
       </header>
 
       {/* Table */}
-      <div className="mt-6 overflow-x-auto bg-white shadow-md">
-        <table className="w-full border border-blue-300">
-          <thead>
-            <tr className="bg-blue-100 text-[#141E30]">
-              <th className="py-2 px-6 border border-blue-300">Course Name</th>
-              <th className="py-2 px-6 border border-blue-300">Course Code</th>
-              <th className="py-2 px-6 border border-blue-300">Description</th>
-              <th className="py-2 px-6 border border-blue-300">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCourses.length > 0 ? (
-              filteredCourses.map((course) => (
-                <tr
-                  key={course.id}
-                  className="hover:bg-blue-50 transition-all"
-                >
-                  <td className="px-6 py-3 border border-blue-300">
-                    {course.name}
-                  </td>
-                  <td className="px-6 py-3 border border-blue-300">
-                    {course.code}
-                  </td>
-                  <td className="px-6 py-3 border border-blue-300">
-                    {course.description
-                      ? course.description.length > 50
-                        ? `${course.description.substring(0, 50)}...`
-                        : course.description
-                      : "No description available"}
-                  </td>
-                  <td className="py-3 px-6 border border-blue-300">
-                    <button
-                      onClick={() => handleViewCourseDetails(course)}
-                      className="flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-full"
-                      title="View Course Details"
-                    >
-                      <AiFillEye className="size-5" />
-                    </button>
+      {loading ? (
+        <div className="w-full flex items-center justify-center h-[500px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#141E30]"></div>
+        </div>
+      ) : (
+        <div className="mt-6 overflow-x-auto bg-white shadow-md">
+          <table className="w-full border border-blue-300">
+            <thead>
+              <tr className="bg-blue-100 text-[#141E30]">
+                <th className="py-2 px-6 border border-blue-300">
+                  Course Name
+                </th>
+                <th className="py-2 px-6 border border-blue-300">
+                  Course Code
+                </th>
+                <th className="py-2 px-6 border border-blue-300">
+                  Description
+                </th>
+                <th className="py-2 px-6 border border-blue-300">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCourses.length > 0 ? (
+                filteredCourses.map((course) => (
+                  <tr
+                    key={course.id}
+                    className="hover:bg-blue-50 transition-all"
+                  >
+                    <td className="px-6 py-3 border border-blue-300">
+                      {course.name}
+                    </td>
+                    <td className="px-6 py-3 border border-blue-300">
+                      {course.code}
+                    </td>
+                    <td className="px-6 py-3 border border-blue-300">
+                      {course.description
+                        ? course.description.length > 50
+                          ? `${course.description.substring(0, 50)}...`
+                          : course.description
+                        : "No description available"}
+                    </td>
+                    <td className="py-3 px-6 border border-blue-300">
+                      <button
+                        onClick={() => handleViewCourseDetails(course)}
+                        className="flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-full"
+                        title="View Course Details"
+                      >
+                        <AiFillEye className="size-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="text-center p-4">
+                    No courses available.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="text-center p-4">
-                  No courses available.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Course Details Modal */}
       {showDetailsModal && selectedCourse && (
