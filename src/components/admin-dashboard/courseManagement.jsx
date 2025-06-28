@@ -99,12 +99,12 @@ const CourseManagement = () => {
         ...courseData,
         clos: Array.isArray(courseData.clos) ? courseData.clos : [],
       };
-  
+
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/courses`,
         payload
       );
-  
+
       setCourses([...courses, response.data.course]);
       setShowAddModal(false);
     } catch (error) {
@@ -115,7 +115,6 @@ const CourseManagement = () => {
       );
     }
   };
-  
 
   // Handle updating a course
   const handleUpdateCourse = async (courseData) => {
@@ -386,7 +385,7 @@ const CourseManagement = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-blue-100">
                   {filteredCourses.map((course) => (
-                    <tr onClick={() => handleOpenDetailsModal(course)} key={course.id}>
+                    <tr key={course.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
@@ -394,7 +393,10 @@ const CourseManagement = () => {
                               <FaBook className="h-5 w-5 text-primary" />
                             </div>
                           </div>
-                          <div className="ml-4">
+                          <div
+                            onClick={() => handleOpenDetailsModal(course)}
+                            className="ml-4"
+                          >
                             <div className="text-sm font-medium text-darktext">
                               {course.name}
                             </div>
